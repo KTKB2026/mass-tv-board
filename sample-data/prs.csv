@@ -1,0 +1,13 @@
+Date,Name,Lift,Weight,Unit,Type,Meet,Show
+EXAMPLE,Example Person,Snatch,100,kg,Gym,,Y
+10/21/2026,Alex Sample,Snatch,72,kg,Gym,,Y
+10/20/2026,Jordan Sample,Back squat,405,lb,Gym,,
+10/19/2026,Casey Sample,Deadlift,182.5,kg,Gym,,
+10/17/2026,Taylor Sample,Clean & jerk,88,kg,Gym,,
+10/15/2026,Morgan Sample,Bench press,225,lb,Gym,,
+10/12/2026,Avery Sample,Front squat,120,kg,Gym,,
+10/8/2026,Quinn Sample,Power clean,100,kg,Gym,,
+10/11/2026,Riley Sample,Clean & jerk,95,kg,Comp,Sample Regional Open,
+10/4/2026,Sam Sample,Total,410,kg,Comp,Sample Fall Open,
+9/10/2026,Old Sample,Bench press,100,kg,Gym,,
+10/22/2026,Hidden Sample,Snatch,50,kg,Gym,,N

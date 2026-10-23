@@ -1,0 +1,10 @@
+Name,Date,End date,Location,MASS hosted,Athletes,Start show,End show
+EXAMPLE Fall Classic,11/14/2026,,MASS Strength,Y,,,
+Sample Open House Lift,10/23/2026,,MASS Strength,Y,,,
+Sample Halloween Pull,10/31/2026,,MASS Strength,Y,,,
+Sample Regional Open,11/7/2026,11/8/2026,"Worcester, MA",N,"Alex Sample, Jordan Sample",,
+Sample Holiday Total,2026-11-21,,MASS Strength,Y,,,
+Sample Winter Qualifier,12/12/2026,,"Providence, RI",N,Riley Sample,,
+Sample Hidden Until Nov 15,12/5/2026,,"Boston, MA",N,,11/15/2026,
+Sample Past Meet,10/10/2026,,Somewhere,N,,,
+Sample Far Future Meet,3/20/2027,,"Boston, MA",N,,,

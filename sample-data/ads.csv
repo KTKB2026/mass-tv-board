@@ -1,0 +1,4 @@
+Business,Image link,Start,End,Active
+EXAMPLE Business,https://drive.google.com/file/d/EXAMPLE/view,,,N
+Sample Sponsor,sample-data/sample-ad.svg,,11/30/2026,Y
+Sample Paused Sponsor,sample-data/sample-ad.svg,,,N

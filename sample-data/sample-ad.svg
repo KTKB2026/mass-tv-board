@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <rect width="1920" height="1080" fill="#e9e4d8"/>
+  <rect x="80" y="80" width="1760" height="920" fill="none" stroke="#3a3a3a" stroke-width="8" stroke-dasharray="40 24"/>
+  <text x="960" y="470" font-family="Arial, sans-serif" font-size="150" font-weight="700" fill="#3a3a3a" text-anchor="middle">SAMPLE AD</text>
+  <text x="960" y="600" font-family="Arial, sans-serif" font-size="60" fill="#3a3a3a" text-anchor="middle">1920 x 1080 sponsor image goes here</text>
+</svg>

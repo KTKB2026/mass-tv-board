@@ -1,0 +1,9 @@
+Day,Open,Close,Note
+Mon-Fri,5:00 AM,9:00 AM,
+Mon-Thu,4:00 PM,8:00 PM,
+Friday,4:00 PM,7:00 PM,
+Saturday,8:00 AM,12:00 PM,
+Sunday,CLOSED,,
+10/30/2026,6:00 AM,12:00 PM,Sample short day
+11/26/2026,CLOSED,,Thanksgiving
+11/27/2026,8:00 AM,11:00 AM,Day after Thanksgiving

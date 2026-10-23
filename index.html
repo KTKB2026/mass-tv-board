@@ -1,0 +1,814 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MASS TV board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+@font-face {
+  font-family: 'Sebastien Slab';
+  src: url('assets/fonts/Sebastien-Slab-Round-FREEWARE.ttf') format('truetype');
+  font-weight: 400 700;
+  font-display: swap;
+}
+/* Brand tokens from Business/Brand/colors_and_type.css */
+:root {
+  --royal: #2B3DAB;
+  --royal-bright: #3B4FD0;
+  --black: #000000;
+  --charcoal-2: #232323;
+  --ink: #2D2D2D;
+  --gray-500: #8A8A8E;
+  --gray-300: #C7C7CC;
+  --white: #FFFFFF;
+  --display: 'Sebastien Slab', 'Rockwell', 'Arial Black', serif;
+  --body: 'Archivo', system-ui, -apple-system, sans-serif;
+  --stat: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: #000; overflow: hidden; cursor: none; -webkit-user-select: none; user-select: none; }
+
+/* Fixed 1920x1080 canvas, scaled to whatever the TV reports */
+#stage { position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px; margin: -540px 0 0 -960px; background: var(--black); color: var(--white); font-family: var(--body); overflow: hidden; -webkit-font-smoothing: antialiased; }
+#slide { position: absolute; left: 0; top: 0; right: 0; bottom: 120px; padding: 56px 72px 0; overflow: hidden; opacity: 0; transition: opacity .45s ease; }
+#slide.on { opacity: 1; }
+#stage.full #slide { bottom: 0; padding: 0; }
+#stage.full #footer { display: none; }
+#progress { position: absolute; left: 0; bottom: 0; height: 6px; width: 0; background: var(--royal-bright); z-index: 3; }
+
+.kicker { font: 700 30px/1 var(--body); letter-spacing: .12em; text-transform: uppercase; color: var(--royal-bright); margin: 0 0 14px; }
+.title { font-family: var(--display); font-weight: 700; font-size: 100px; line-height: 1; letter-spacing: -.01em; text-transform: uppercase; margin: 0 0 36px; }
+.clip { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Events */
+.ev { display: flex; align-items: center; height: 160px; border-bottom: 2px solid var(--ink); }
+.ev:last-child { border-bottom: 0; }
+.ev-date { width: 210px; flex: none; }
+.ev-mon { font: 700 32px/1 var(--body); letter-spacing: .12em; color: var(--royal-bright); }
+.ev-day { font: 700 88px/.95 var(--stat); }
+.ev-main { flex: 1; min-width: 0; padding-right: 40px; }
+.ev-name { font: 700 58px/1.15 var(--body); }
+.ev-meta { font: 500 34px/1.3 var(--body); color: var(--gray-300); margin-top: 6px; }
+.tag { display: inline-block; font: 700 24px/1 var(--body); letter-spacing: .1em; text-transform: uppercase; background: var(--royal); color: var(--white); padding: 8px 14px; border-radius: 4px; margin-right: 18px; position: relative; top: -4px; }
+.ev-count { flex: none; font: 700 56px/1 var(--stat); background: var(--royal); padding: 14px 30px; border-radius: 6px; white-space: nowrap; }
+.ev-count.now { background: var(--white); color: var(--black); }
+
+/* Hours */
+.hours { display: flex; }
+.week { width: 1000px; flex: none; margin-right: 56px; }
+.wk { display: flex; align-items: center; justify-content: space-between; height: 90px; padding: 0 28px; border-bottom: 2px solid var(--ink); }
+.wk:last-child { border-bottom: 0; }
+.wk-day { font: 600 46px/1 var(--body); }
+.wk-hrs { font: 600 58px/1 var(--stat); }
+.wk.closed .wk-hrs { color: var(--gray-500); }
+.wk.today { background: var(--royal); border-radius: 6px; border-bottom-color: transparent; }
+.wk.today .wk-hrs { color: var(--white); }
+.changes { flex: 1; min-width: 0; }
+.ch-head { font: 700 30px/1 var(--body); letter-spacing: .12em; text-transform: uppercase; color: var(--gray-300); margin: 0 0 22px; }
+.ch { border-left: 10px solid var(--royal); background: var(--charcoal-2); padding: 22px 30px; margin-bottom: 22px; border-radius: 0 6px 6px 0; }
+.ch-date { font: 700 52px/1 var(--stat); }
+.ch-what { font: 700 44px/1.15 var(--body); margin-top: 8px; }
+.ch-why { font: 500 32px/1.3 var(--body); color: var(--gray-300); margin-top: 4px; }
+.ch-none { font: 500 38px/1.35 var(--body); color: var(--gray-300); }
+
+/* PRs */
+.prs { display: grid; grid-template-columns: 1fr 1fr; grid-gap: 24px 32px; }
+.pr { display: flex; align-items: center; height: 206px; padding: 0 36px 0 32px; background: var(--charcoal-2); border-left: 10px solid var(--royal); border-radius: 0 8px 8px 0; }
+.pr-l { flex: 1; min-width: 0; padding-right: 24px; }
+.pr-name { font: 700 52px/1.15 var(--body); }
+.pr-lift { font: 600 38px/1.2 var(--body); color: var(--gray-300); margin-top: 6px; }
+.pr-meta { font: 500 28px/1.2 var(--body); color: var(--gray-500); margin-top: 8px; }
+.pr-w { flex: none; font: 700 132px/.9 var(--stat); letter-spacing: -.01em; }
+.pr-u { font: 600 50px/1 var(--stat); color: var(--gray-300); margin-left: 8px; }
+
+/* Standouts and announcements */
+.card { background: var(--charcoal-2); border-left: 10px solid var(--royal); border-radius: 0 8px 8px 0; padding: 30px 40px; margin-bottom: 24px; }
+.so-name { font-family: var(--display); font-weight: 700; font-size: 72px; line-height: 1; text-transform: uppercase; }
+.so-line { font: 500 46px/1.3 var(--body); color: var(--gray-300); margin-top: 14px; }
+.so-one .so-name { font-size: 132px; margin-top: 40px; }
+.so-one .so-line { font-size: 58px; color: var(--white); margin-top: 32px; max-width: 1500px; }
+.an { font: 600 52px/1.3 var(--body); }
+.an-one { font: 700 84px/1.18 var(--body); max-width: 1700px; margin-top: 20px; }
+
+/* House promo and ads (full screen, no footer) */
+.promo { display: flex; height: 100%; }
+.promo-l { width: 820px; flex: none; background: var(--white); display: flex; align-items: center; justify-content: center; }
+.promo-l img { width: 640px; }
+.promo-r { flex: 1; padding: 130px 96px 0; }
+.promo-h { font-family: var(--display); font-weight: 700; font-size: 92px; line-height: 1.04; text-transform: uppercase; }
+.promo-p { font: 500 46px/1.35 var(--body); color: var(--gray-300); margin-top: 36px; }
+.promo-qr { display: flex; align-items: center; margin-top: 56px; }
+.promo-qr img { width: 260px; height: 260px; background: var(--white); padding: 14px; image-rendering: pixelated; }
+.promo-qr span { font: 700 36px/1.2 var(--body); letter-spacing: .06em; text-transform: uppercase; margin-left: 32px; }
+.ad { width: 100%; height: 100%; background: var(--black); }
+.ad img { width: 100%; height: 100%; object-fit: contain; display: block; }
+
+/* Footer */
+#footer { position: absolute; left: 0; right: 0; bottom: 0; height: 120px; padding: 0 72px; border-top: 2px solid var(--ink); display: flex; align-items: center; background: var(--black); }
+.ft-brand { display: flex; align-items: center; flex: none; }
+.ft-brand img { height: 58px; margin-right: 22px; filter: brightness(0) invert(1); }
+.ft-word { font-family: var(--display); font-weight: 700; font-size: 38px; letter-spacing: .04em; text-transform: uppercase; }
+.ft-mid { flex: 1; min-width: 0; text-align: center; padding: 0 40px; }
+.ft-note { display: inline-block; max-width: 100%; background: var(--royal); font: 700 34px/1 var(--body); padding: 16px 28px; border-radius: 6px; }
+.ft-tag { font: 600 24px/1 var(--body); letter-spacing: .18em; text-transform: uppercase; color: var(--gray-500); }
+.ft-right { display: flex; align-items: center; flex: none; }
+.ft-date { text-align: right; margin-right: 26px; }
+.ft-day { font: 600 28px/1.15 var(--body); color: var(--gray-300); }
+.ft-sync { font: 500 18px/1.2 var(--body); color: var(--gray-500); margin-top: 4px; }
+.ft-sync.stale { color: #E8902A; }
+.ft-time { font: 700 76px/1 var(--stat); }
+
+/* After hours and waiting screen: near black, drifting so nothing burns in */
+#night { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; background: var(--black); display: none; z-index: 5; }
+#night.on { display: block; }
+#night-box { position: absolute; left: 640px; top: 300px; width: 640px; text-align: center; transition: left 3s ease, top 3s ease; }
+#night-box img { width: 380px; filter: brightness(0) invert(1); opacity: .28; }
+#night-time { font: 700 120px/1 var(--stat); color: var(--gray-500); opacity: .7; margin-top: 10px; }
+#night-msg { font: 500 34px/1.3 var(--body); color: var(--gray-500); opacity: .8; margin-top: 12px; }
+
+/* Meet mode: the meet software's display page, full window */
+#meet { position: fixed; left: 0; top: 0; width: 100%; height: 100%; border: 0; background: var(--black); display: none; z-index: 10; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="slide"></div>
+  <div id="footer">
+    <div class="ft-brand"><img src="assets/logo-m-mark.png" alt=""><div class="ft-word">MASS Strength</div></div>
+    <div class="ft-mid" id="ft-mid"></div>
+    <div class="ft-right">
+      <div class="ft-date"><div class="ft-day" id="ft-day"></div><div class="ft-sync" id="ft-sync"></div></div>
+      <div class="ft-time" id="ft-time"></div>
+    </div>
+  </div>
+  <div id="progress"></div>
+  <div id="night"><div id="night-box"><img src="assets/logo-m-mark.png" alt=""><div id="night-time"></div><div id="night-msg"></div></div></div>
+</div>
+<iframe id="meet" title="Meet display"></iframe>
+<script src="assets/vendor/qrcode.min.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  // ===== Sheet links ==========================================================
+  // MASS TV Google Sheet: File > Share > Publish to web > pick a tab > CSV.
+  // Paste one link per tab. Leave a tab blank to skip it.
+  var SHEET_CSV = {
+    events: '',
+    hours: '',
+    prs: '',
+    standouts: '',
+    announcements: '',
+    ads: '',
+    settings: ''
+  };
+  // ============================================================================
+
+  var REFRESH_MS = 5 * 60 * 1000;
+  var WAKE_EARLY_MIN = 30;   // board wakes this long before open
+  var SLEEP_LATE_MIN = 30;   // and sleeps this long after close
+  var HOUSE_HEADLINE = 'Know someone who wants to get strong?';
+  var HOUSE_LINE = 'Their first step is a free blueprint session with a coach.';
+
+  var params = new URLSearchParams(location.search);
+  var SAMPLE = params.has('sample');
+  var TABS = Object.keys(SHEET_CSV);
+  function tabUrl(t) { return SAMPLE ? 'sample-data/' + t + '.csv' : SHEET_CSV[t]; }
+  var CONFIGURED = SAMPLE || TABS.some(function (t) { return !!SHEET_CSV[t]; });
+  var DATA = SAMPLE ? 'sample_' : '';   // sample runs never touch the real cached data
+
+  var OFFSET = 0;
+  if (params.get('now')) {
+    var fake = new Date(params.get('now'));
+    if (!isNaN(fake)) OFFSET = fake.getTime() - Date.now();
+  }
+  function now() { return new Date(Date.now() + OFFSET); }
+
+  var $ = function (id) { return document.getElementById(id); };
+  var stage = $('stage'), slideEl = $('slide'), prog = $('progress');
+  var nightEl = $('night'), nightBox = $('night-box'), meetEl = $('meet');
+
+  // ----- Small helpers --------------------------------------------------------
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function norm(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
+  function isNo(v) { return /^(n|no|false|0|off)$/i.test(String(v || '').trim()); }
+  function isYes(v) { return /^(y|yes|true|x|1)$/i.test(String(v || '').trim()); }
+  // Splits evenly, so 7 PRs at 6 a page show as 4 + 3, not 6 + 1
+  function chunk(list, n) {
+    var pages = Math.ceil(list.length / n), per = Math.ceil(list.length / (pages || 1)), out = [];
+    for (var i = 0; i < list.length; i += per) out.push(list.slice(i, i + per));
+    return out;
+  }
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function lsGet(k) { try { return localStorage.getItem('mtv_' + k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem('mtv_' + k, v); } catch (e) {} }
+  function safeUrl(u) { u = String(u || '').trim(); return /^(https?:\/\/|[\w.\/-]+$)/i.test(u) && !/^javascript:/i.test(u) ? u : ''; }
+
+  var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  var DOW = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  var DOW3 = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  // "Amy Farrell" -> "Amy F."; the TV never shows full last names
+  function shortName(s) {
+    var parts = String(s || '').trim().replace(/\s+/g, ' ').replace(/,?\s+(jr|sr|ii|iii|iv)\.?$/i, '').split(' ');
+    if (parts.length < 2 || !parts[0]) return parts.join(' ');
+    var last = parts.pop();
+    return parts.join(' ') + ' ' + last.charAt(0).toUpperCase() + '.';
+  }
+  function nameList(s) {
+    return String(s || '').split(/\s*(?:,|;|\n|\band\b|&)\s*/).filter(Boolean).map(shortName).join(', ');
+  }
+
+  // ----- Dates and times ------------------------------------------------------
+  function mk(y, m, d) { var x = new Date(y, m, d); return isNaN(x) ? null : x; }
+  function sod(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+  function addDays(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
+  function daysBetween(a, b) { return Math.round((sod(b) - sod(a)) / 86400000); }
+  function sameDay(a, b) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
+  function today() { return sod(now()); }
+
+  function parseDate(s) {
+    s = String(s || '').trim();
+    if (!s) return null;
+    var m;
+    if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))) return mk(+m[1], +m[2] - 1, +m[3]);
+    if ((m = s.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?(?:\s|$)/))) {
+      var y = m[3] ? +m[3] : now().getFullYear();
+      if (y < 100) y += 2000;
+      return mk(y, +m[1] - 1, +m[2]);
+    }
+    if ((m = s.match(/^(?:[a-z]+,?\s+)?([a-z]{3})[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s*(\d{4})?$/i))) {
+      var mi = MON.map(function (x) { return x.toLowerCase(); }).indexOf(m[1].toLowerCase());
+      if (mi >= 0) return mk(m[3] ? +m[3] : now().getFullYear(), mi, +m[2]);
+    }
+    if (/\d{4}/.test(s)) { var t = new Date(s); if (!isNaN(t)) return sod(t); }
+    return null;
+  }
+
+  // Minutes after midnight. Takes "5:00 AM", "5am", "17:00", "noon".
+  function parseTime(s) {
+    s = String(s || '').trim().toLowerCase().replace(/\s+|\./g, '');
+    if (!s) return null;
+    if (s === 'noon') return 720;
+    if (s === 'midnight') return 1440;
+    var m = s.match(/^(\d{1,2})(?::?(\d{2}))?(a|am|p|pm)?$/);
+    if (!m) return null;
+    var h = +m[1], mi = +(m[2] || 0);
+    if (h > 24 || mi > 59) return null;
+    if (m[3]) { if (h === 12) h = 0; if (m[3].charAt(0) === 'p') h += 12; }
+    return { min: h * 60 + mi, ap: !!m[3] };
+  }
+  function fmtTime(min, withAp) {
+    var h = Math.floor(min / 60) % 24, m = min % 60;
+    var out = (h % 12 || 12) + (m ? ':' + pad2(m) : '');
+    return withAp === false ? out : out + (h < 12 ? ' AM' : ' PM');
+  }
+  function fmtRange(w) {
+    var sameHalf = (w.open < 720) === (w.close % 1440 < 720 && w.close < 1440);
+    return sameHalf ? fmtTime(w.open, false) + '–' + fmtTime(w.close) : fmtTime(w.open) + '–' + fmtTime(w.close);
+  }
+  function fmtShort(d) { return MON[d.getMonth()] + ' ' + d.getDate(); }
+  function fmtDayLabel(d) {
+    var n = daysBetween(today(), d);
+    if (n === 0) return 'Today';
+    if (n === 1) return 'Tomorrow';
+    return DOW3[d.getDay()] + ', ' + fmtShort(d);
+  }
+  function clockText(d) { var h = d.getHours(); return (h % 12 || 12) + ':' + pad2(d.getMinutes()) + (h < 12 ? ' AM' : ' PM'); }
+
+  // ----- CSV to rows ----------------------------------------------------------
+  function parseCSV(text) {
+    var rows = [], row = [], field = '', q = false, c;
+    text = String(text || '').replace(/^﻿/, '');
+    for (var i = 0; i < text.length; i++) {
+      c = text.charAt(i);
+      if (q) {
+        if (c === '"') { if (text.charAt(i + 1) === '"') { field += '"'; i++; } else q = false; }
+        else field += c;
+      } else if (c === '"') q = true;
+      else if (c === ',') { row.push(field); field = ''; }
+      else if (c === '\n' || c === '\r') {
+        if (c === '\r' && text.charAt(i + 1) === '\n') i++;
+        row.push(field); rows.push(row); row = []; field = '';
+      } else field += c;
+    }
+    if (field !== '' || row.length) { row.push(field); rows.push(row); }
+    return rows.filter(function (r) { return r.some(function (x) { return String(x).trim() !== ''; }); });
+  }
+
+  // Column headers Kyle might use for each field, already lowercased with no spaces
+  var SHOW_START = ['startshow', 'showfrom', 'showstart', 'showon', 'start'];
+  var SHOW_END = ['endshow', 'showuntil', 'showend', 'hideafter', 'end'];
+  var FIELDS = {
+    events: { name: ['name', 'event', 'eventname', 'meet'], date: ['date', 'startdate', 'eventdate', 'day'], end: ['enddate', 'through', 'lastday'], location: ['location', 'where', 'venue', 'city'], hosted: ['masshosted', 'hosted', 'host'], athletes: ['athletes', 'lifters', 'masslifters', 'masslifting'], showStart: SHOW_START, showEnd: SHOW_END },
+    hours: { day: ['day', 'days', 'date'], open: ['open', 'opens', 'from', 'hours', 'hoursorclosed'], close: ['close', 'closes', 'to', 'until'], note: ['note', 'notes', 'reason'] },
+    prs: { date: ['date', 'day'], name: ['name', 'athlete', 'lifter', 'member'], lift: ['lift', 'exercise', 'movement'], weight: ['weight', 'load', 'kg', 'lb', 'lbs', 'result', 'pr'], unit: ['unit', 'units'], type: ['type', 'category', 'kind'], meet: ['meet', 'competition', 'comp'], show: ['show', 'showontv', 'tv', 'display'] },
+    standouts: { name: ['name', 'member', 'athlete'], line: ['line', 'why', 'text', 'note', 'shoutout'], showStart: SHOW_START, showEnd: SHOW_END },
+    announcements: { text: ['text', 'announcement', 'message', 'note'], showStart: SHOW_START, showEnd: SHOW_END },
+    ads: { business: ['business', 'sponsor', 'advertiser', 'name'], image: ['imagelink', 'image', 'imageurl', 'picture', 'link'], start: ['start', 'startdate', 'from', 'startshow'], end: ['end', 'enddate', 'until', 'endshow'], active: ['active', 'live', 'on', 'show'] }
+  };
+
+  function mapHeader(row, spec) {
+    var heads = row.map(norm), map = {}, used = {}, count = 0;
+    Object.keys(spec).forEach(function (f) {
+      for (var a = 0; a < spec[f].length; a++) {
+        var idx = heads.indexOf(spec[f][a]);
+        if (idx >= 0 && !used[idx]) { map[f] = idx; used[idx] = true; count++; return; }
+      }
+    });
+    return { map: map, count: count };
+  }
+
+  // Finds the header row (first row with 2+ known columns), skips EXAMPLE rows
+  function toObjects(text, tab) {
+    var rows = parseCSV(text), spec = FIELDS[tab], hi = -1, map = null;
+    for (var i = 0; i < Math.min(rows.length, 5); i++) {
+      var m = mapHeader(rows[i], spec);
+      if (m.count >= 2) { hi = i; map = m.map; break; }
+    }
+    if (!map) return [];
+    var out = [];
+    for (var j = hi + 1; j < rows.length; j++) {
+      var r = rows[j];
+      if (r.some(function (c) { return /^\s*example\b/i.test(c); })) continue;
+      var o = {};
+      Object.keys(map).forEach(function (k) { o[k] = String(r[map[k]] == null ? '' : r[map[k]]).trim(); });
+      out.push(o);
+    }
+    return out;
+  }
+
+  function toSettings(text) {
+    var out = {};
+    parseCSV(text).forEach(function (r) { if (r[0]) out[norm(r[0])] = String(r[1] == null ? '' : r[1]).trim(); });
+    return out;
+  }
+
+  function showing(startStr, endStr, defaultEnd) {
+    var t = today(), start = parseDate(startStr), end = parseDate(endStr) || defaultEnd || null;
+    if (start && t < start) return false;
+    if (end && t > end) return false;
+    return true;
+  }
+
+  function driveImage(u) {
+    var m = String(u || '').match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=\w+&)?id=)([\w-]{10,})/);
+    return m ? 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w1920' : safeUrl(u);
+  }
+
+  function num(v, def, lo, hi) { var n = parseFloat(v); if (isNaN(n)) return def; return Math.max(lo, Math.min(hi, n)); }
+
+  // ----- Model: everything the slides need, rebuilt on every refresh ----------
+  var RAW = {}, M = null, content = [], ci = 0, sinceAd = 0, ai = 0;
+  var adState = {};   // image url -> true (loaded) / false (failed)
+
+  function parseDays(s) {
+    s = String(s || '').trim().toLowerCase();
+    if (!s || /\d/.test(s)) return null;
+    if (/weekday/.test(s)) return [1, 2, 3, 4, 5];
+    if (/weekend/.test(s)) return [0, 6];
+    if (/daily|every ?day/.test(s)) return [0, 1, 2, 3, 4, 5, 6];
+    var out = [], ok = true;
+    s.split(/\s*(?:,|&|\band\b|\/)\s*/).forEach(function (part) {
+      var ends = part.split(/\s*(?:-|–|\bto\b|\bthru\b|\bthrough\b)\s*/).filter(Boolean).map(dayIndex);
+      if (!ends.length || ends.some(function (x) { return x < 0; })) { ok = false; return; }
+      if (ends.length === 1) { out.push(ends[0]); return; }
+      for (var d = ends[0], guard = 0; guard < 7; d = (d + 1) % 7, guard++) { out.push(d); if (d === ends[1]) break; }
+    });
+    return ok && out.length ? out : null;
+  }
+  function dayIndex(tok) {
+    tok = tok.trim().replace(/\.$/, '');
+    if (tok.length < 2) return -1;
+    for (var i = 0; i < 7; i++) if (DOW[i].toLowerCase().indexOf(tok) === 0) return i;
+    return -1;
+  }
+
+  function makeWindow(openStr, closeStr) {
+    if (!closeStr && /-|–|\bto\b/.test(openStr)) {
+      var bits = openStr.split(/\s*(?:-|–|\bto\b)\s*/);
+      openStr = bits[0]; closeStr = bits[1];
+    }
+    var o = parseTime(openStr), c = parseTime(closeStr);
+    if (!o || !c) return null;
+    var open = o.min, close = c.min;
+    if (close === 0) close = 1440;
+    if (close <= open && !c.ap) close += 720;    // "4 - 8" means 4 to 8 PM
+    if (close <= open) return null;
+    return { open: open, close: close };
+  }
+
+  function buildModel() {
+    var S = toSettings(RAW.settings || '');
+    var set = {
+      mode: (params.get('mode') || S.mode || 'normal').toLowerCase(),
+      meetUrl: safeUrl(params.get('meet') || S.meeturl || ''),
+      slideSecs: num(S.slideseconds, 12, 5, 60),
+      adSecs: num(S.adseconds, 10, 5, 30),
+      adEvery: Math.round(num(S.adevery, 4, 0, 12)),
+      prDays: num(S.prdays, 30, 1, 365),
+      eventDays: num(S.eventdays, 60, 1, 365),
+      promoLink: safeUrl(S.promolink || ''),
+      promoLine: S.promoline || ''
+    };
+    if (set.adEvery === 1) set.adEvery = 2;
+    if (!/^https?:/i.test(set.meetUrl)) set.meetUrl = '';
+
+    var t = today();
+
+    var events = toObjects(RAW.events || '', 'events').map(function (r) {
+      var d = parseDate(r.date);
+      if (!d || !r.name) return null;
+      var end = parseDate(r.end) || d;
+      if (end < d) end = d;
+      return { name: r.name, date: d, end: end, location: r.location, hosted: isYes(r.hosted), athletes: nameList(r.athletes), showStart: r.showStart, showEnd: r.showEnd };
+    }).filter(function (e) {
+      return e && t <= e.end && daysBetween(t, e.date) <= set.eventDays && showing(e.showStart, e.showEnd, e.end);
+    }).sort(function (a, b) { return a.date - b.date; });
+
+    var weekly = [], changes = [];
+    toObjects(RAW.hours || '', 'hours').forEach(function (r) {
+      var days = parseDays(r.day);
+      var closed = /closed/i.test(r.open + ' ' + r.close);
+      var w = closed ? null : makeWindow(r.open, r.close);
+      if (days) { if (w) weekly.push({ days: days, w: w }); return; }
+      var d = parseDate(r.day);
+      if (d) changes.push({ date: d, closed: closed || !w, w: w, note: r.note });
+    });
+
+    var prs = toObjects(RAW.prs || '', 'prs').map(function (r) {
+      var d = parseDate(r.date);
+      if (!d || !r.name || !r.weight || isNo(r.show)) return null;
+      var age = daysBetween(d, t);
+      if (age < 0 || age > set.prDays) return null;
+      var comp = /comp|meet/i.test(r.type) || (!r.type && !!r.meet);
+      return { date: d, name: shortName(r.name), lift: r.lift, weight: r.weight.replace(/\s*(kg|lbs?|kilos?)$/i, ''), unit: r.unit || ((r.weight.match(/(kg|lbs?)$/i) || [])[1] || ''), comp: comp, meet: r.meet };
+    }).filter(Boolean).sort(function (a, b) { return b.date - a.date; });
+
+    var standouts = toObjects(RAW.standouts || '', 'standouts').filter(function (r) {
+      return (r.name || r.line) && showing(r.showStart, r.showEnd);
+    }).map(function (r) { return { name: shortName(r.name), line: r.line }; });
+
+    var news = toObjects(RAW.announcements || '', 'announcements').filter(function (r) {
+      return r.text && showing(r.showStart, r.showEnd);
+    });
+
+    var ads = toObjects(RAW.ads || '', 'ads').filter(function (r) {
+      return r.image && !isNo(r.active) && showing(r.start, r.end);
+    }).map(function (r) { return { business: r.business, src: driveImage(r.image) }; }).filter(function (a) { return a.src; });
+
+    M = { set: set, events: events, weekly: weekly, changes: changes, prs: prs, standouts: standouts, news: news, ads: ads };
+
+    ads.forEach(function (a) {
+      if (a.src in adState) return;
+      var im = new Image();
+      im.onload = function () { adState[a.src] = true; };
+      im.onerror = function () { adState[a.src] = false; };
+      adState[a.src] = undefined;
+      im.src = a.src;
+    });
+
+    // Slide list in rotation order. Ads get slotted in at show time.
+    var c = [];
+    chunk(events, 4).forEach(function (items, i, all) { c.push({ kind: 'events', items: items, page: i + 1, pages: all.length }); });
+    if (weekly.length || changes.length) c.push({ kind: 'hours' });
+    var gym = prs.filter(function (p) { return !p.comp; }), comp = prs.filter(function (p) { return p.comp; });
+    chunk(gym, 6).forEach(function (items, i, all) { c.push({ kind: 'prs', title: 'Gym PRs', items: items, page: i + 1, pages: all.length }); });
+    chunk(comp, 6).forEach(function (items, i, all) { c.push({ kind: 'prs', title: 'Competition PRs', items: items, page: i + 1, pages: all.length }); });
+    chunk(standouts, 2).forEach(function (items, i, all) { c.push({ kind: 'standouts', items: items, page: i + 1, pages: all.length }); });
+    chunk(news, 2).forEach(function (items, i, all) { c.push({ kind: 'news', items: items, page: i + 1, pages: all.length }); });
+    if (!c.length) c.push({ kind: 'welcome' });
+    content = c;
+    if (ci >= content.length) ci = 0;
+  }
+
+  // Hours windows for one date, holiday rows win over the weekly schedule
+  function windowsFor(d) {
+    var ch = M.changes.filter(function (x) { return sameDay(x.date, d); });
+    if (ch.length) {
+      if (ch.some(function (x) { return x.closed; })) return [];
+      return ch.map(function (x) { return x.w; }).sort(function (a, b) { return a.open - b.open; });
+    }
+    var dow = d.getDay();
+    return M.weekly.filter(function (x) { return x.days.indexOf(dow) >= 0; }).map(function (x) { return x.w; }).sort(function (a, b) { return a.open - b.open; });
+  }
+  function hasHours() { return M && (M.weekly.length > 0); }
+  function isAwake(t) {
+    if (!hasHours()) return true;
+    var base = sod(t).getTime(), at = t.getTime();
+    return windowsFor(t).some(function (w) {
+      return at >= base + (w.open - WAKE_EARLY_MIN) * 60000 && at <= base + (w.close + SLEEP_LATE_MIN) * 60000;
+    });
+  }
+  function nextOpen(t) {
+    for (var i = 0; i < 8; i++) {
+      var d = addDays(sod(t), i);
+      var ws = windowsFor(d);
+      for (var j = 0; j < ws.length; j++) {
+        if (d.getTime() + ws[j].open * 60000 > t.getTime()) {
+          var label = i === 0 ? 'today' : i === 1 ? 'tomorrow' : DOW3[d.getDay()];
+          return 'Opens ' + label + ' ' + fmtTime(ws[j].open) + '.';
+        }
+      }
+    }
+    return '';
+  }
+  function upcomingChanges(days) {
+    var t = today(), seen = {}, out = [];
+    M.changes.slice().sort(function (a, b) { return a.date - b.date; }).forEach(function (x) {
+      var n = daysBetween(t, x.date);
+      if (n < 0 || n > days) return;
+      var key = x.date.toDateString();
+      if (seen[key]) return;
+      seen[key] = true;
+      var ws = windowsFor(x.date);
+      var notes = M.changes.filter(function (y) { return sameDay(y.date, x.date) && y.note; }).map(function (y) { return y.note; });
+      out.push({ date: x.date, what: ws.length ? ws.map(fmtRange).join(' · ') : 'Closed', note: notes[0] || '' });
+    });
+    return out;
+  }
+
+  // ----- Slides ---------------------------------------------------------------
+  function head(kicker, title, page, pages) {
+    return '<div class="kicker">' + esc(kicker) + (pages > 1 ? ' · ' + page + ' of ' + pages : '') + '</div>' +
+      '<h1 class="title">' + esc(title) + '</h1>';
+  }
+
+  function renderEvents(s) {
+    var t = today();
+    var rows = s.items.map(function (e) {
+      var n = daysBetween(t, e.date);
+      var on = n <= 0;
+      var count = n < 0 ? 'On now' : n === 0 ? 'Today' : n === 1 ? 'Tomorrow' : 'In ' + n + ' days';
+      var day = String(e.date.getDate());
+      if (!sameDay(e.date, e.end)) day += '–' + e.end.getDate();
+      var meta = [];
+      if (e.location) meta.push(esc(e.location));
+      if (e.athletes) meta.push('MASS lifting: ' + esc(e.athletes));
+      return '<div class="ev">' +
+        '<div class="ev-date"><div class="ev-mon">' + MON[e.date.getMonth()].toUpperCase() + '</div><div class="ev-day">' + day + '</div></div>' +
+        '<div class="ev-main"><div class="ev-name clip">' + esc(e.name) + '</div>' +
+        '<div class="ev-meta clip">' + (e.hosted ? '<span class="tag">MASS hosted</span>' : '') + meta.join(' &nbsp;·&nbsp; ') + '</div></div>' +
+        '<div class="ev-count' + (on ? ' now' : '') + '">' + count + '</div></div>';
+    }).join('');
+    return head('Next ' + M.set.eventDays + ' days', 'Up next', s.page, s.pages) + rows;
+  }
+
+  function renderHours() {
+    var order = [1, 2, 3, 4, 5, 6, 0], t = today(), dow = t.getDay();
+    var week = order.map(function (d) {
+      var ws = M.weekly.filter(function (x) { return x.days.indexOf(d) >= 0; }).map(function (x) { return x.w; }).sort(function (a, b) { return a.open - b.open; });
+      var txt = ws.length ? ws.map(fmtRange).join(' · ') : 'Closed';
+      return '<div class="wk' + (d === dow ? ' today' : '') + (ws.length ? '' : ' closed') + '"><div class="wk-day">' + DOW[d] + '</div><div class="wk-hrs">' + txt + '</div></div>';
+    }).join('');
+    var ch = upcomingChanges(14).slice(0, 3);
+    var side = ch.length ? ch.map(function (x) {
+      return '<div class="ch"><div class="ch-date">' + esc(fmtDayLabel(x.date)) + '</div><div class="ch-what">' + esc(x.what) + '</div>' +
+        (x.note ? '<div class="ch-why">' + esc(x.note) + '</div>' : '') + '</div>';
+    }).join('') : '<div class="ch-none">No schedule changes in the next two weeks.</div>';
+    return head('Gym schedule', 'Hours') +
+      '<div class="hours"><div class="week">' + (M.weekly.length ? week : '') + '</div>' +
+      '<div class="changes"><div class="ch-head">Changes, next 2 weeks</div>' + side + '</div></div>';
+  }
+
+  function renderPrs(s) {
+    var cards = s.items.map(function (p) {
+      var meta = (p.comp && p.meet ? esc(p.meet) + ' · ' : '') + fmtShort(p.date);
+      return '<div class="pr"><div class="pr-l"><div class="pr-name clip">' + esc(p.name) + '</div>' +
+        '<div class="pr-lift clip">' + esc(p.lift) + '</div><div class="pr-meta clip">' + meta + '</div></div>' +
+        '<div class="pr-w">' + esc(p.weight) + (p.unit ? '<span class="pr-u">' + esc(p.unit) + '</span>' : '') + '</div></div>';
+    }).join('');
+    return head('Last ' + M.set.prDays + ' days', s.title, s.page, s.pages) + '<div class="prs">' + cards + '</div>';
+  }
+
+  function renderStandouts(s) {
+    var h = head('MASS members', 'Standouts', s.page, s.pages);
+    if (s.items.length === 1 && s.pages === 1) {
+      var o = s.items[0];
+      return h + '<div class="so-one"><div class="so-name">' + esc(o.name) + '</div><div class="so-line">' + esc(o.line) + '</div></div>';
+    }
+    return h + s.items.map(function (o) {
+      return '<div class="card"><div class="so-name">' + esc(o.name) + '</div><div class="so-line">' + esc(o.line) + '</div></div>';
+    }).join('');
+  }
+
+  function renderNews(s) {
+    var h = head('Heads up', 'Announcements', s.page, s.pages);
+    if (s.items.length === 1 && s.pages === 1) return h + '<div class="an-one">' + esc(s.items[0].text) + '</div>';
+    return h + s.items.map(function (n) { return '<div class="card an">' + esc(n.text) + '</div>'; }).join('');
+  }
+
+  function renderWelcome() {
+    return head('Welcome to', 'MASS Strength') + '<div class="an-one">Perform with confidence.</div>';
+  }
+
+  function qrImage(text) {
+    try { var q = qrcode(0, 'M'); q.addData(text); q.make(); return q.createDataURL(10, 2); } catch (e) { return ''; }
+  }
+
+  function renderPromo() {
+    var qr = M.set.promoLink ? qrImage(M.set.promoLink) : '';
+    return '<div class="promo"><div class="promo-l"><img src="assets/logo-m-mark.png" alt=""></div>' +
+      '<div class="promo-r"><div class="kicker">MASS Strength</div><div class="promo-h">' + esc(HOUSE_HEADLINE) + '</div>' +
+      '<div class="promo-p">' + esc(M.set.promoLine || HOUSE_LINE) + '</div>' +
+      (qr ? '<div class="promo-qr"><img src="' + qr + '" alt=""><span>Scan to book</span></div>' : '') + '</div></div>';
+  }
+
+  function renderAd() {
+    var ready = M.ads.filter(function (a) { return adState[a.src] === true; });
+    if (!ready.length) return renderPromo();
+    var a = ready[ai % ready.length];
+    ai++;
+    return '<div class="ad"><img src="' + esc(a.src) + '" alt="' + esc(a.business) + '"></div>';
+  }
+
+  function nextSlide() {
+    var every = M.set.adEvery;
+    if (every > 1 && sinceAd >= every - 1) { sinceAd = 0; return { kind: 'ad' }; }
+    var s = content[ci % content.length];
+    ci = (ci + 1) % content.length;
+    sinceAd++;
+    return s;
+  }
+
+  function render(s) {
+    var secs = M.set.slideSecs;
+    switch (s.kind) {
+      case 'events': return { html: renderEvents(s), secs: secs };
+      case 'hours': return { html: renderHours(), secs: secs };
+      case 'prs': return { html: renderPrs(s), secs: secs };
+      case 'standouts': return { html: renderStandouts(s), secs: secs };
+      case 'news': return { html: renderNews(s), secs: secs };
+      case 'ad': return { html: renderAd(), secs: M.set.adSecs, full: true };
+      default: return { html: renderWelcome(), secs: secs };
+    }
+  }
+
+  // ----- Rotation and screen state --------------------------------------------
+  var state = '', slideTimer = null, swapTimer = null, shownKind = '';
+
+  function runProgress(secs) {
+    prog.style.transition = 'none';
+    prog.style.width = '0';
+    void prog.offsetWidth;
+    prog.style.transition = 'width ' + secs + 's linear';
+    prog.style.width = '100%';
+  }
+
+  function advance() {
+    clearTimeout(slideTimer);
+    clearTimeout(swapTimer);
+    if (state !== 'board') return;
+    var s = nextSlide(), r = render(s);
+    shownKind = s.kind;
+    slideEl.className = '';
+    swapTimer = setTimeout(function () {
+      slideEl.innerHTML = r.html;
+      stage.classList.toggle('full', !!r.full);
+      slideEl.className = 'on';
+      runProgress(r.secs);
+    }, 450);
+    slideTimer = setTimeout(advance, r.secs * 1000);
+  }
+
+  function computeState() {
+    if (!CONFIGURED) return 'waiting';
+    if (!M) return 'board';
+    if (M.set.mode === 'meet' && M.set.meetUrl) return 'meet';
+    if (!isAwake(now())) return 'night';
+    return 'board';
+  }
+
+  function applyState() {
+    nightEl.classList.toggle('on', state === 'night' || state === 'waiting');
+    if (state === 'meet') {
+      if (meetEl.getAttribute('src') !== M.set.meetUrl) meetEl.setAttribute('src', M.set.meetUrl);
+      meetEl.style.display = 'block';
+    } else {
+      meetEl.style.display = 'none';
+      if (meetEl.getAttribute('src') && meetEl.getAttribute('src') !== 'about:blank') meetEl.setAttribute('src', 'about:blank');
+    }
+    if (state === 'board') advance();
+    else { clearTimeout(slideTimer); clearTimeout(swapTimer); }
+    if (state === 'night' || state === 'waiting') { updateNight(); moveNight(); }
+  }
+
+  function updateNight() {
+    var t = now();
+    $('night-time').textContent = clockText(t);
+    $('night-msg').textContent = state === 'waiting' ? 'Board installed. Waiting on the Google Sheet link.' : ('Closed. ' + nextOpen(t)).trim();
+  }
+  function moveNight() {
+    nightBox.style.left = Math.round(Math.random() * (1920 - 640)) + 'px';
+    nightBox.style.top = Math.round(Math.random() * (1080 - 480)) + 'px';
+  }
+
+  function updateFooter() {
+    var t = now();
+    $('ft-time').textContent = clockText(t);
+    $('ft-day').textContent = DOW[t.getDay()] + ', ' + fmtShort(t);
+    var mid = $('ft-mid'), html;
+    var next = M ? upcomingChanges(14)[0] : null;
+    if (next) html = '<span class="ft-note clip">' + esc(fmtDayLabel(next.date) + ' · ' + next.what + (next.note ? ' · ' + next.note : '')) + '</span>';
+    else html = '<span class="ft-tag">Perform with confidence</span>';
+    if (mid.innerHTML !== html) mid.innerHTML = html;
+  }
+
+  var lastMove = 0, lastMin = -1;
+  function tick() {
+    var t = now();
+    if (t.getMinutes() !== lastMin) { lastMin = t.getMinutes(); updateFooter(); }
+    var st = computeState();
+    if (st !== state) { state = st; applyState(); }
+    if (state === 'night' || state === 'waiting') {
+      updateNight();
+      if (Date.now() - lastMove > 60000) { lastMove = Date.now(); moveNight(); }
+    }
+    // One reload a night picks up new versions and clears any memory creep
+    var real = new Date();
+    if (real.getHours() === 3 && real.getMinutes() >= 30 && lsGet('reloaded') !== real.toDateString()) {
+      lsSet('reloaded', real.toDateString());
+      location.reload();
+    }
+  }
+
+  // ----- Data loading ---------------------------------------------------------
+  function setSync(text, stale) {
+    var el = $('ft-sync');
+    el.textContent = text;
+    el.className = 'ft-sync' + (stale ? ' stale' : '');
+  }
+
+  function loadCached() {
+    TABS.forEach(function (t) { var v = lsGet(DATA + 'csv_' + t); if (v) RAW[t] = v; });
+  }
+
+  function fetchTab(t) {
+    var url = tabUrl(t);
+    if (!url) return Promise.resolve({ ok: true, skip: true });
+    var bust = url + (url.indexOf('?') >= 0 ? '&' : '?') + '_=' + Date.now();
+    return fetch(bust, { cache: 'no-store' }).then(function (r) {
+      if (!r.ok) throw new Error(r.status);
+      return r.text();
+    }).then(function (text) {
+      if (/^\s*<(!doctype|html)/i.test(text)) throw new Error('not csv');
+      RAW[t] = text;
+      lsSet(DATA + 'csv_' + t, text);
+      lsSet(DATA + 'ts_' + t, String(Date.now()));
+      return { ok: true };
+    }).catch(function () {
+      return { ok: false, ts: +(lsGet(DATA + 'ts_' + t) || 0) };
+    });
+  }
+
+  function refresh() {
+    if (!CONFIGURED) return Promise.resolve();
+    return Promise.all(TABS.map(fetchTab)).then(function (res) {
+      var failed = res.filter(function (r) { return !r.ok; });
+      if (!failed.length) setSync('Updated ' + clockText(new Date()), false);
+      else {
+        var oldest = Math.min.apply(null, failed.map(function (r) { return r.ts || 0; }));
+        setSync(oldest ? 'Offline · data from ' + clockText(new Date(oldest)) : 'Offline · no data yet', true);
+      }
+      buildModel();
+      updateFooter();
+      var st = computeState();
+      if (st !== state) { state = st; applyState(); }
+      else if (state === 'meet') applyState();
+      else if (state === 'board' && shownKind === 'welcome' && content[0].kind !== 'welcome') advance();
+    });
+  }
+
+  function fit() {
+    var s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    stage.style.transform = 'scale(' + s + ')';
+  }
+
+  // ----- Start ----------------------------------------------------------------
+  window.addEventListener('resize', fit);
+  fit();
+  loadCached();
+  buildModel();
+  updateFooter();
+  if (CONFIGURED && !lsGet('ts_events') && !SAMPLE) setSync('Loading sheet…', false);
+  tick();
+  setInterval(tick, 1000);
+  refresh();
+  setInterval(refresh, REFRESH_MS);
+
+  if (SAMPLE) window.mtvNext = advance;   // test hook, sample mode only
+
+  if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) {
+    navigator.serviceWorker.register('sw.js').catch(function () {});
+  }
+})();
+</script>
+</body>
+</html>
