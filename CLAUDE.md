@@ -51,7 +51,8 @@ rows with a future start date wait.
 
 ## Workflow (same as Meet Day)
 - main is live; Pages serves it. Never build on main.
-- Feature branch per version (v1, v2-..., fix-...), verify, merge, tag, push tags.
+- Feature branch per version (v1-board, v2-..., fix-...), verify, merge, tag, push tags.
+  Branch names must never match a tag name (tag v1, branch v1-board), or pushes fail.
 - Bump `CACHE` in `sw.js` on every deploy.
 - Pages sometimes skips a build: `gh api --method POST repos/KTKB2026/mass-tv-board/pages/builds`.
   Verify live with a cache-busted curl (`?nocache=`); the CDN caches ~10 min.
